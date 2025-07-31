@@ -21,7 +21,7 @@ export async function POST(req:Request){
         }
 
         //generating the document id 
-        const documenntID = crypto.randomUUID();
+        const documentID = crypto.randomUUID();
 
         //convert file to blob
         const blob = new Blob([await file.arrayBuffer()] , {type:file.type});
@@ -43,7 +43,7 @@ export async function POST(req:Request){
             ...doc,
             metadata: {
                 ...doc.metadata,
-                documenntID
+                documentID
             },
         }));
 
@@ -95,7 +95,7 @@ export async function POST(req:Request){
 
          return NextResponse.json({
             summary: summaryText, // Send only the string content
-            documenntID,
+            documentID,
             pageCount:docs.length
         });
 
