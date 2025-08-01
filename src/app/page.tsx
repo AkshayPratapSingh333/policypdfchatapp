@@ -16,6 +16,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { ChatInterface } from "@/components/chat-interface";
 import { DocumentMetadata } from "@/lib/types";
+import { Sidebar } from "@/components/sidebar";
 
 export default function Home() {
   const [loading,setLoading] =  useState(false);
@@ -24,6 +25,7 @@ export default function Home() {
   const [summary,setSummary] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [currentDocument, setCurrentDocument] = useState<DocumentMetadata>();
+  
   const onDrop = useCallback(async (acceptedFiles:File[]) => {
     try {
       setError("") // empty
@@ -61,39 +63,57 @@ export default function Home() {
     
   } , []);
 
-      const { getRootProps, getInputProps, isDragActive } = useDropzone({
-        onDrop,
-        accept: {
-          "application/pdf": [".pdf"]
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/pdf": [".pdf"]
+    },
+    maxSize: 20 * 1024 * 1024 // 20 MB
+  });
+
+  // Fixed handleMessage function
+  const handleMessage = async (message: string, documentID?: string): Promise<string> => {
+    try {
+      setLoading(true);
+      
+      // Choose the correct API endpoint based on whether we have a document
+      const endpoint = documentID ? "/api/question" : "/api/general-chat";
+      
+      // Build request body based on context
+      const requestBody = documentID 
+        ? { question: message, documentID }
+        : { question: message };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        maxSize: 20 * 1024 * 1024 // 20 MB
+        body: JSON.stringify(requestBody)
       });
 
-      const handleMessage = async (message:string , documentID:string) => {
-        try {
-          setLoading(true)
-          const response = await fetch("/api/question" , {
-            method:"POST",
-            body:JSON.stringify({question: message,documentID,})
-          });
-          if(!response.ok){
-            throw new Error("Failed to Send Query")
-          }
-          const data = await response.json();
-          return data.answer;
-          
-        } catch (error) {
-          setError(error instanceof Error ? error.message : "Unidentified Error")
-        }finally{
-          setLoading(false);
-        }
+      if (!response.ok) {
+        throw new Error("Failed to Send Query");
       }
+      
+      const data = await response.json();
+      return data.answer || "Sorry, I couldn't process your request.";
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unidentified Error";
+      setError(errorMessage);
+      return `Error: ${errorMessage}`;
+    } finally {
+      setLoading(false);
+    }
+  }
 
 
 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50 dark:from-slate-900 dark:via-blue-950 dark:to-teal-950">
+      <Sidebar/>
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
